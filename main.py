@@ -1,12 +1,51 @@
-import imageio
 import tensorflow as tf
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from keras import models, layers
-from sklearn.model_selection import train_test_split
-import cv2
-from sklearn.preprocessing import LabelEncoder
+#from sklearn.model_selection import train_test_split
+#from sklearn.preprocessing import LabelEncoder
 
+test_sign_data = pd.read_csv('sign_mnist_test.csv').values
+train_sign_data = pd.read_csv('sign_mnist_train.csv').values
+
+test_labels = test_sign_data[:, 0]
+test_digits = test_sign_data[:, 1:]
+
+train_labels = train_sign_data[:, 0]
+train_digits = train_sign_data[:, 1:]
+train_digits = np.asarray(train_digits)
+
+data_array = np.zeros((train_digits.shape[0], 28, 28, 1))
+
+for i in range(train_digits.shape[0]):
+    single_image = train_digits[i,:].reshape(1,-1)
+    single_image = single_image.reshape(-1, 28)
+    data_array[i,:,:,0] = single_image
+
+data_array = data_array / 255
+print(data_array.shape)
+
+
+model = models.Sequential()
+
+model.add(layers.Conv2D(32, (5, 5), padding='same', activation='relu', input_shape=(28, 28, 1)))
+model.add(layers.MaxPooling2D(pool_size=(2, 2)))
+model.add(layers.Conv2D(64, (5, 5), padding='same', activation='relu'))
+model.add(layers.MaxPooling2D(pool_size=(2, 2)))
+model.add(layers.Conv2D(128, (5, 5), padding='same', activation='relu'))
+model.add(layers.MaxPooling2D(pool_size=(2, 2)))
+model.add(layers.Flatten())
+model.add(layers.Dense(128, activation='relu'))
+model.add(tf.keras.layers.Dense(26, activation='softmax'))
+
+print(model.summary())
+
+model.compile(optimizer='adam',
+              loss='sparse_categorical_crossentropy',
+              metrics=['accuracy'])
+
+h = model.fit(data_array, train_labels, epochs=10, validation_split=0.2)
 
 
 '''
