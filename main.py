@@ -2,164 +2,90 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from keras import models, layers
-#from sklearn.model_selection import train_test_split
-#from sklearn.preprocessing import LabelEncoder
+from keras import models, layers, callbacks
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import OneHotEncoder
 
 test_sign_data = pd.read_csv('sign_mnist_test.csv').values
 train_sign_data = pd.read_csv('sign_mnist_train.csv').values
 
 test_labels = test_sign_data[:, 0]
 test_digits = test_sign_data[:, 1:]
+test_digits = np.asarray(test_digits)
 
 train_labels = train_sign_data[:, 0]
 train_digits = train_sign_data[:, 1:]
 train_digits = np.asarray(train_digits)
 
+# reshaping
 data_array = np.zeros((train_digits.shape[0], 28, 28, 1))
-
 for i in range(train_digits.shape[0]):
     single_image = train_digits[i,:].reshape(1,-1)
     single_image = single_image.reshape(-1, 28)
     data_array[i,:,:,0] = single_image
 
 data_array = data_array / 255
-print(data_array.shape)
 
+print(len(train_digits))
 
-model = models.Sequential()
-
-model.add(layers.Conv2D(32, (5, 5), padding='same', activation='relu', input_shape=(28, 28, 1)))
-model.add(layers.MaxPooling2D(pool_size=(2, 2)))
-model.add(layers.Conv2D(64, (5, 5), padding='same', activation='relu'))
-model.add(layers.MaxPooling2D(pool_size=(2, 2)))
-model.add(layers.Conv2D(128, (5, 5), padding='same', activation='relu'))
-model.add(layers.MaxPooling2D(pool_size=(2, 2)))
-model.add(layers.Flatten())
-model.add(layers.Dense(128, activation='relu'))
-model.add(tf.keras.layers.Dense(26, activation='softmax'))
-
-print(model.summary())
-
-model.compile(optimizer='adam',
-              loss='sparse_categorical_crossentropy',
-              metrics=['accuracy'])
-
-h = model.fit(data_array, train_labels, epochs=10, validation_split=0.2)
-
-
-'''
-with open('Stanford40/ImageSplits/train.txt', 'r') as f:
-    train_files = list(map(str.strip, f.readlines()))
-    train_labels = ['_'.join(name.split('_')[:-1]) for name in train_files]
-with open('Stanford40/ImageSplits/test.txt', 'r') as f:
-    test_files = list(map(str.strip, f.readlines()))
-    test_labels = ['_'.join(name.split('_')[:-1]) for name in test_files]
-
-action_categories = sorted(list(set(['_'.join(name.split('_')[:-1]) for name in train_files])))
-
-IMAGE_SIZE = 224
-train_images = []
-test_images = []
-
-# Resizing all train images to 224x224
-for x in train_files:
-    img_path = "Stanford40/JPEGImages/" + x
-    print(img_path)
-    img = imageio.imread(img_path)
-    img = img / 255.0
-    print("Original Image Size : {}".format(img.shape))
-    # Converting 1 channel image into 3 channels
-    if len(img.shape) == 2:
-        img_temp = cv2.imread(img_path)
-        gray = cv2.cvtColor(img_temp, cv2.COLOR_BGR2GRAY)
-        img = np.zeros_like(img_temp)
-        img[:, :, 0] = gray
-        img[:, :, 1] = gray
-        img[:, :, 2] = gray
-    new_img = tf.image.resize(img, (IMAGE_SIZE, IMAGE_SIZE))
-    print("After Image Resize : {}\n".format(new_img.shape))
-    train_images.append(new_img)
-
-for y in test_files:
-    img_path = "Stanford40/JPEGImages/" + y
-    print(img_path)
-    img = imageio.imread(img_path)
-    img = img / 255.0
-    print("Original Image Size : {}".format(img.shape))
-    # Converting 1 channel image into 3 channels
-    if len(img.shape) == 2:
-        img_temp = cv2.imread(img_path)
-        gray = cv2.cvtColor(img_temp, cv2.COLOR_BGR2GRAY)
-        img = np.zeros_like(img_temp)
-        img[:, :, 0] = gray
-        img[:, :, 1] = gray
-        img[:, :, 2] = gray
-    new_img = tf.image.resize(img, (IMAGE_SIZE, IMAGE_SIZE))
-    print("After Image Resize : {}\n".format(new_img.shape))
-    test_images.append(new_img)
-
-encoder = LabelEncoder()
-train_labels = encoder.fit_transform(train_labels)
-test_labels = encoder.fit_transform(test_labels)
-
-train_images_split, validation_images_split, train_labels_split, validation_labels_split = train_test_split(train_images, train_labels,
+train_digits_split, val_digits_split, train_labels_split, val_labels_split = train_test_split(data_array, train_labels,
                                                                                     stratify=train_labels, test_size=0.1)
 
-train_images = np.array(train_images_split)
+train_digits = np.array(train_digits_split)
 train_labels = np.array(train_labels_split)
-validation_images = np.array(validation_images_split)
-validation_labels = np.array(validation_labels_split)
-test_images = np.array(test_images)
-test_labels = np.array(test_labels)
+val_digits = np.array(val_digits_split)
+val_labels = np.array(val_labels_split)
 
+# encoding labels using one hot encoder
+train_labels_df = pd.DataFrame(train_labels)
+one_hot_encoder = OneHotEncoder(sparse=False)
+one_hot_encoder.fit(train_labels_df)
+colors_df_encoded = one_hot_encoder.transform(train_labels_df)
+train_labels = pd.DataFrame(data=colors_df_encoded, columns=one_hot_encoder.categories_)
+
+test_labels_df = pd.DataFrame(test_labels)
+one_hot_encoder = OneHotEncoder(sparse=False)
+one_hot_encoder.fit(test_labels_df)
+colors_df_encoded = one_hot_encoder.transform(test_labels_df)
+test_labels = pd.DataFrame(data=colors_df_encoded, columns=one_hot_encoder.categories_)
+
+val_labels_df = pd.DataFrame(val_labels)
+one_hot_encoder = OneHotEncoder(sparse=False)
+one_hot_encoder.fit(val_labels_df)
+colors_df_encoded = one_hot_encoder.transform(val_labels_df)
+val_labels = pd.DataFrame(data=colors_df_encoded, columns=one_hot_encoder.categories_)
+
+
+early_stopping = callbacks.EarlyStopping(
+    monitor='val_loss',
+    min_delta=0.001, # minimium amount of change to count as an improvement
+    patience=5, # how many epochs to wait before stopping
+    restore_best_weights=True,
+)
+
+# building CNN network model
 model = models.Sequential()
 
-model.add(layers.Conv2D(32, (5, 5), activation='relu', input_shape=(IMAGE_SIZE, IMAGE_SIZE, 3), strides=2, kernel_regularizer='l2'))
+model.add(layers.Conv2D(64,kernel_size=(3,3),activation='swish',input_shape=(28,28,1)))
 model.add(layers.BatchNormalization())
-model.add(layers.MaxPooling2D(2, 2))
-model.add(layers.Dropout(0.25))
-model.add(layers.Conv2D(64, (3, 3), activation='relu', kernel_regularizer='l2'))
+model.add(layers.MaxPooling2D(pool_size=(2, 2),strides=(2,2)))
+model.add(layers.Dropout(0.2))
+model.add(layers.Conv2D(64,kernel_size=(3,3),activation='swish',input_shape=(28,28,1)))
 model.add(layers.BatchNormalization())
-model.add(layers.MaxPooling2D(2, 2))
+model.add(layers.MaxPooling2D(pool_size=(2, 2),strides=(2,2)))
 model.add(layers.Dropout(0.25))
-model.add(layers.Conv2D(128, (3, 3), activation='relu', kernel_regularizer='l2'))
+model.add(layers.Conv2D(32,kernel_size=(3,3),activation='swish'))
 model.add(layers.BatchNormalization())
-model.add(layers.MaxPooling2D(2, 2))
-model.add(layers.Dropout(0.25))
+model.add(layers.MaxPooling2D(pool_size=(2, 2),strides=(2,2)))
+model.add(layers.Dropout(0.3))
 model.add(layers.Flatten())
-model.add(layers.Dense(128, activation='relu'))
-model.add(layers.BatchNormalization())
-model.add(layers.Dense(64, activation='relu'))
-model.add(layers.BatchNormalization())
-model.add(tf.keras.layers.Dense(40, activation='softmax'))
+model.add(tf.keras.layers.Dense(24, activation='softmax'))
 
 print(model.summary())
 
 model.compile(optimizer='adam',
-              loss='sparse_categorical_crossentropy',
+              loss='categorical_crossentropy',
               metrics=['accuracy'])
 
-augmentation = tf.keras.preprocessing.image.ImageDataGenerator(rotation_range=15, horizontal_flip=True)
-
-h = model.fit(x=augmentation.flow(train_images, train_labels), epochs=10, validation_data=(validation_images, validation_labels))
-
-model.save('model.h5')
-
-plt.plot(h.history['accuracy'], label='accuracy')
-plt.plot(h.history['val_accuracy'], label='val_accuracy')
-plt.xlabel('Epoch')
-plt.ylabel('Accuracy')
-plt.legend(loc='lower right')
-plt.show()
-
-plt.plot(h.history['loss'], label='loss')
-plt.plot(h.history['val_loss'], label='val_loss')
-plt.xlabel('Epoch')
-plt.ylabel('Loss')
-plt.legend(loc='lower right')
-plt.show()
-
-results = model.evaluate(test_images, test_labels, batch_size=128)
-print("test loss, test acc:", results)
-'''
+h = model.fit(train_digits, train_labels, epochs=10, validation_data=(val_digits, val_labels), batch_size=128, callbacks=[early_stopping])
