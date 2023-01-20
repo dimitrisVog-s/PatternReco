@@ -21,32 +21,36 @@ for i in range(len(df)):
 reshaped_train = np.array(reshaped_train)
 
 train_labels = np.array(labels)
+for index,label in enumerate(train_labels):
+    if label > 8:
+        train_labels[index] -=1 
 reshaped_labels = OneHotEncoder().fit_transform(train_labels.reshape(-1,1)).toarray()
 
 ## Network archtecture 
 
 model = Sequential()
-model.add(Conv2D(64, kernel_size = 5, activation = 'relu', input_shape = (28,28, 1), padding = 'same'))
+model.add(Conv2D(32, kernel_size = 3, activation = 'relu', input_shape = (28,28, 1), padding = 'same'))
 
-model.add(BatchNormalization())
+model.add(MaxPool2D(2))
 
-model.add(Conv2D(16,kernel_size = 3, activation = 'relu'))
+model.add(Conv2D(64,kernel_size = 3, activation = 'relu'))
 
-model.add(MaxPool2D(4))
+model.add(MaxPool2D(2))
 
-model.add(Conv2D(8, kernel_size = 3, activation = 'relu'))
+model.add(Conv2D(128, kernel_size = 3, activation = 'relu'))
 
-model.add(Dropout(0.2))
-
-model.add(Conv2D(5, kernel_size =3, activation = 'relu'))
+model.add(MaxPool2D(2))
 
 model.add(Flatten())
 
+model.add(Dense(256,activation = 'relu'))
+
 model.add(Dense(24,activation = 'softmax'))
+
 
 model.summary()
 
-callback = tf.keras.callbacks.EarlyStopping(monitor='loss', patience=4)
+callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=4, restore_best_weights = True, min_delta = 0.00001)
 
 model.compile(optimizer = 'adam',
               loss = 'categorical_crossentropy',
@@ -54,16 +58,19 @@ model.compile(optimizer = 'adam',
 
 ## Model fit 
 
-result = model.fit(reshaped_train, reshaped_labels, validation_split = 0.2, epochs = 10, batch_size = 64, callbacks = [callback])
+result = model.fit(reshaped_train, reshaped_labels, validation_split = 0.2, epochs = 100, batch_size = 64, callbacks = [callback])
 
 # Model Save
 
-save_model(model, "test.h5", save_format="h5")
+save_model(model, "model_weights.h5", save_format="h5")
 
 # Testing 
 
 test = pd.read_csv("sign_mnist_test.csv")
 test_labels = np.array(test['label'])
+for index,label in enumerate(test_labels):
+    if label > 8:
+        test_labels[index] -=1 
 test.drop(columns = 'label', inplace = True)
 
 reshaped_test = []
