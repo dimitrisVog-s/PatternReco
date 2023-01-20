@@ -3,8 +3,9 @@ import pandas as pd
 import numpy as np 
 import matplotlib.pyplot as plt 
 from tensorflow import keras 
-from keras.models import Sequential 
+from keras.models import Sequential, save_model
 from keras.layers import Dense, Conv2D, Flatten, MaxPool2D, Dropout, BatchNormalization
+from keras.preprocessing import image
 from sklearn.preprocessing import OneHotEncoder
 
 df = pd.read_csv("sign_mnist_train.csv")
@@ -53,7 +54,11 @@ model.compile(optimizer = 'adam',
 
 ## Model fit 
 
-result = model.fit(reshaped_train, reshaped_labels, validation_split = 0.2, epochs = 200, batch_size = 64, callbacks = [callback])
+result = model.fit(reshaped_train, reshaped_labels, validation_split = 0.2, epochs = 10, batch_size = 64, callbacks = [callback])
+
+# Model Save
+
+save_model(model, "test.h5", save_format="h5")
 
 # Testing 
 
