@@ -6,6 +6,7 @@ from tensorflow import keras
 from keras.models import Sequential, save_model, load_model
 from keras.layers import Dense, Conv2D, Flatten, MaxPool2D, Dropout, BatchNormalization
 from keras.preprocessing import image
+#import keras.utils as image
 from sklearn.preprocessing import OneHotEncoder
 import cv2
 from time import time
@@ -19,33 +20,61 @@ def open_camera():
 
     previous = time()
     delta = 0
-    model = load_model("test.h5")
+    model = load_model("model_weights.h5")
+    letter = ""
+    confidence = ""
 
     while(True):
         current = time()
         delta += current - previous
         previous = current
         
-        if delta > 5:
+        if delta > 3:
             roi = frame[9+1:300-1, 9+1:300-1]
             cv2.imwrite('test.png', roi)
             delta = 0
 
             img = image.load_img("test.png", target_size=(28, 28))
             img_tensor = image.img_to_array(img)
-            print(img_tensor)
-            img_tensor = img_tensor / 255
+            #print(img_tensor)
+            #img_tensor = img_tensor / 255
             img_tensor = tf.image.rgb_to_grayscale(img_tensor)
             img_tensor = np.expand_dims(img_tensor, axis=0)
 
             pred = model.predict(img_tensor)
-            #print(pred)
 
-            print(alphabet[np.argmax(pred)])
-        
+            letter = alphabet[np.argmax(pred)]
+            confidence = round(np.max(pred), 2)
+
+            
+            #fig,ax = plt.subplots()
+            #im = plt.imshow(img)
+            #ax.set_title(f"Prediction : {alphabet[np.argmax(pred)]}  Confidence : {np.max(pred):.2f}") 
+            #plt.show()
+
         ret, frame = cam.read()
 
         cv2.rectangle(frame, (9, 9), (300, 300), (255, 0, 0), 1)
+
+        pred_text = "Prediction: " + str(letter)
+        font = cv2.FONT_HERSHEY_SIMPLEX
+
+        cv2.putText(frame, 
+                pred_text, 
+                (9, 350), 
+                font, 1, 
+                (0, 255, 0), 
+                2, 
+                cv2.LINE_4)
+
+        confidence_text = "Confidence: " + str(confidence)
+        cv2.putText(frame, 
+                confidence_text, 
+                (9, 400), 
+                font, 1, 
+                (0, 255, 0), 
+                2, 
+                cv2.LINE_4)
 
         cv2.imshow("frame", frame)
 
