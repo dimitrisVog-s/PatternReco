@@ -31,13 +31,19 @@ reshaped_labels = OneHotEncoder().fit_transform(train_labels.reshape(-1,1)).toar
 model = Sequential()
 model.add(Conv2D(32, kernel_size = 3, activation = 'relu', input_shape = (28,28, 1), padding = 'same'))
 
+model.add(BatchNormalization())
+
 model.add(MaxPool2D(2))
 
 model.add(Conv2D(64,kernel_size = 3, activation = 'relu'))
 
+model.add(Dropout(0.2))
+
 model.add(MaxPool2D(2))
 
 model.add(Conv2D(128, kernel_size = 3, activation = 'relu'))
+
+model.add(Dropout(0.2))
 
 model.add(MaxPool2D(2))
 
@@ -50,7 +56,7 @@ model.add(Dense(24,activation = 'softmax'))
 
 model.summary()
 
-callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=4, restore_best_weights = True, min_delta = 0.00001)
+callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5, restore_best_weights = True, min_delta = 0.000001)
 
 model.compile(optimizer = 'adam',
               loss = 'categorical_crossentropy',
